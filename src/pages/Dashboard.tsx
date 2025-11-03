@@ -1,7 +1,8 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, DollarSign, Target } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CountryMap } from '@/components/CountryMap';
 
 const statusData = [
   { name: 'Active', value: 245 },
@@ -10,15 +11,6 @@ const statusData = [
   { name: 'Pending', value: 52 },
 ];
 
-const countryData = [
-  { name: 'USA', value: 180 },
-  { name: 'UK', value: 95 },
-  { name: 'Germany', value: 78 },
-  { name: 'France', value: 62 },
-  { name: 'Others', value: 96 },
-];
-
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--success))', 'hsl(var(--warning))'];
 
 const mockClients = [
   { id: '1', name: 'Acme Corp', country: 'USA', industry: 'Technology', status: 'Active', lastContact: '2024-01-15', assignedTo: 'John Doe', potentialValue: 50000 },
@@ -86,25 +78,7 @@ export default function Dashboard() {
               <CardTitle>Clients by Country</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={countryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {countryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <CountryMap />
             </CardContent>
           </Card>
         </div>
