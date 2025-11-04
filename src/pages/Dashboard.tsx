@@ -1,32 +1,107 @@
+import { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, DollarSign, Target } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CountryMap } from '@/components/CountryMap';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
-const statusData = [
-  { name: 'Active', value: 245 },
-  { name: 'Lead', value: 128 },
-  { name: 'Closed', value: 86 },
-  { name: 'Pending', value: 52 },
-];
-
-
-const mockClients = [
-  { id: '1', name: 'Acme Corp', country: 'USA', industry: 'Technology', status: 'Active', lastContact: '2024-01-15', assignedTo: 'John Doe', potentialValue: 50000 },
-  { id: '2', name: 'Global Industries', country: 'UK', industry: 'Manufacturing', status: 'Lead', lastContact: '2024-01-14', assignedTo: 'Jane Smith', potentialValue: 75000 },
-  { id: '3', name: 'Tech Solutions', country: 'Germany', industry: 'Technology', status: 'Active', lastContact: '2024-01-13', assignedTo: 'Mike Johnson', potentialValue: 120000 },
-  { id: '4', name: 'Retail Plus', country: 'France', industry: 'Retail', status: 'Pending', lastContact: '2024-01-12', assignedTo: 'Sarah Williams', potentialValue: 30000 },
-  { id: '5', name: 'Finance Group', country: 'USA', industry: 'Finance', status: 'Active', lastContact: '2024-01-11', assignedTo: 'Tom Brown', potentialValue: 200000 },
-];
+interface Client {
+  id: string;
+  name: string;
+  country: string;
+  industry: string;
+  status: string;
+  last_contact: string | null;
+  profiles?: { name: string } | null;
+}
 
 export default function Dashboard() {
-  const stats = [
-    { title: 'Total Clients', value: '511', icon: Users, change: '+12.5%', color: 'text-primary' },
-    { title: 'Active Deals', value: '245', icon: Target, change: '+8.2%', color: 'text-success' },
-    { title: 'Conversion Rate', value: '68%', icon: TrendingUp, change: '+4.3%', color: 'text-accent' },
+  const [clients, setClients] = useState<Client[]>([]);
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    activeDeals: 0,
+    conversionRate: 0,
+  });
+  const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*, profiles(name)')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      // Fetch all clients for statistics
+      const { data: allClients, error: allError } = await supabase
+        .from('clients')
+        .select('status');
+
+      if (allError) throw allError;
+
+      setClients(data || []);
+
+      // Calculate statistics
+      const total = allClients?.length || 0;
+      const active = allClients?.filter(c => c.status === 'active').length || 0;
+      const conversion = total > 0 ? Math.round((active / total) * 100) : 0;
+
+      setStats({
+        totalClients: total,
+        activeDeals: active,
+        conversionRate: conversion,
+      });
+
+      // Group by status for chart
+      const statusGroups = allClients?.reduce((acc, client) => {
+        const status = client.status.charAt(0).toUpperCase() + client.status.slice(1);
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const chartData = Object.entries(statusGroups || {}).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
+      setStatusData(chartData);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statsCards = [
+    { title: 'Total Clients', value: stats.totalClients.toString(), icon: Users, change: '+12.5%', color: 'text-primary' },
+    { title: 'Active Deals', value: stats.activeDeals.toString(), icon: Target, change: '+8.2%', color: 'text-success' },
+    { title: 'Conversion Rate', value: `${stats.conversionRate}%`, icon: TrendingUp, change: '+4.3%', color: 'text-accent' },
     { title: 'Revenue', value: '$1.2M', icon: DollarSign, change: '+18.7%', color: 'text-warning' },
   ];
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-success/10 text-success';
+      case 'pending':
+        return 'bg-warning/10 text-warning';
+      case 'negotiation':
+        return 'bg-primary/10 text-primary';
+      case 'inactive':
+        return 'bg-muted text-muted-foreground';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
 
   return (
     <MainLayout>
@@ -38,7 +113,7 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
+          {statsCards.map((stat) => (
             <Card key={stat.title} className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
@@ -61,15 +136,25 @@ export default function Dashboard() {
               <CardTitle>Clients by Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={statusData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  Loading chart...
+                </div>
+              ) : statusData.length === 0 ? (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No client data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={statusData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -89,41 +174,46 @@ export default function Dashboard() {
             <CardTitle>Recent Clients</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2 font-medium">Name</th>
-                    <th className="text-left p-2 font-medium">Country</th>
-                    <th className="text-left p-2 font-medium">Industry</th>
-                    <th className="text-left p-2 font-medium">Status</th>
-                    <th className="text-left p-2 font-medium">Last Contact</th>
-                    <th className="text-left p-2 font-medium">Assigned To</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockClients.map((client) => (
-                    <tr key={client.id} className="border-b hover:bg-muted/50 transition-colors">
-                      <td className="p-2 font-medium">{client.name}</td>
-                      <td className="p-2">{client.country}</td>
-                      <td className="p-2">{client.industry}</td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          client.status === 'Active' ? 'bg-success/10 text-success' :
-                          client.status === 'Lead' ? 'bg-primary/10 text-primary' :
-                          client.status === 'Pending' ? 'bg-warning/10 text-warning' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {client.status}
-                        </span>
-                      </td>
-                      <td className="p-2">{client.lastContact}</td>
-                      <td className="p-2">{client.assignedTo}</td>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading clients...</div>
+            ) : clients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No clients yet. Add your first client to get started!
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 font-medium">Name</th>
+                      <th className="text-left p-2 font-medium">Country</th>
+                      <th className="text-left p-2 font-medium">Industry</th>
+                      <th className="text-left p-2 font-medium">Status</th>
+                      <th className="text-left p-2 font-medium">Last Contact</th>
+                      <th className="text-left p-2 font-medium">Assigned To</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {clients.map((client) => (
+                      <tr key={client.id} className="border-b hover:bg-muted/50 transition-colors">
+                        <td className="p-2 font-medium">{client.name}</td>
+                        <td className="p-2">{client.country}</td>
+                        <td className="p-2">{client.industry}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
+                            {client.status}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          {client.last_contact ? format(new Date(client.last_contact), 'MMM dd, yyyy') : 'Never'}
+                        </td>
+                        <td className="p-2">{client.profiles?.name || 'Unassigned'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

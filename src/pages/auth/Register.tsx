@@ -12,10 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2 } from 'lucide-react';
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  email: z.string().email('Invalid email address').max(255),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['admin', 'user']),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -31,7 +30,6 @@ export default function Register() {
       name: '',
       email: '',
       password: '',
-      role: 'user',
     },
   });
 
@@ -42,7 +40,7 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      await register(data.name, data.email, data.password, data.role);
+      await register(data.name, data.email, data.password);
       navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
@@ -108,27 +106,6 @@ export default function Register() {
                         disabled={isLoading}
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

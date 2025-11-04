@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Search, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -11,24 +11,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddClientDialog } from '@/components/AddClientDialog';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const mockClients = [
-  { id: '1', name: 'Acme Corp', email: 'contact@acme.com', country: 'USA', industry: 'Technology', status: 'Active', potentialValue: 50000, assignedTo: 'John Doe' },
-  { id: '2', name: 'Global Industries', email: 'info@global.com', country: 'UK', industry: 'Manufacturing', status: 'Lead', potentialValue: 75000, assignedTo: 'Jane Smith' },
-  { id: '3', name: 'Tech Solutions', email: 'hello@techsol.com', country: 'Germany', industry: 'Technology', status: 'Active', potentialValue: 120000, assignedTo: 'Mike Johnson' },
-  { id: '4', name: 'Retail Plus', email: 'support@retailplus.com', country: 'France', industry: 'Retail', status: 'Pending', potentialValue: 30000, assignedTo: 'Sarah Williams' },
-  { id: '5', name: 'Finance Group', email: 'contact@financegroup.com', country: 'USA', industry: 'Finance', status: 'Active', potentialValue: 200000, assignedTo: 'Tom Brown' },
-];
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  country: string;
+  industry: string;
+  status: string;
+  assigned_user_id: string | null;
+  profiles?: { name: string } | null;
+}
 
 export default function Clients() {
-  const [clients, setClients] = useState(mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*, profiles(name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error: any) {
+      toast.error('Failed to fetch clients');
+      console.error('Error fetching clients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,15 +60,36 @@ export default function Clients() {
     client.country.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    setClients(clients.filter(c => c.id !== id));
-    toast.success('Client deleted successfully');
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setClients(clients.filter(c => c.id !== id));
+      toast.success('Client deleted successfully');
+    } catch (error: any) {
+      toast.error('Failed to delete client');
+      console.error('Error deleting client:', error);
+    }
   };
 
-  const handleAddClient = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast.success('Client added successfully');
-    setIsAddDialogOpen(false);
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-success/10 text-success';
+      case 'pending':
+        return 'bg-warning/10 text-warning';
+      case 'negotiation':
+        return 'bg-primary/10 text-primary';
+      case 'inactive':
+        return 'bg-muted text-muted-foreground';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
   };
 
   return (
@@ -55,67 +100,7 @@ export default function Clients() {
             <h1 className="text-3xl font-bold">Clients</h1>
             <p className="text-muted-foreground">Manage your client relationships</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Client
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add New Client</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddClient} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" placeholder="Company name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="contact@company.com" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" placeholder="USA" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="industry">Industry</Label>
-                    <Input id="industry" placeholder="Technology" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lead">Lead</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="value">Potential Value</Label>
-                    <Input id="value" type="number" placeholder="50000" required />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="assigned">Assigned To</Label>
-                    <Input id="assigned" placeholder="John Doe" required />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Add Client</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <AddClientDialog onClientAdded={fetchClients} />
         </div>
 
         <Card>
@@ -133,74 +118,75 @@ export default function Clients() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-medium">Name</th>
-                    <th className="text-left p-3 font-medium">Email</th>
-                    <th className="text-left p-3 font-medium">Country</th>
-                    <th className="text-left p-3 font-medium">Industry</th>
-                    <th className="text-left p-3 font-medium">Status</th>
-                    <th className="text-left p-3 font-medium">Value</th>
-                    <th className="text-left p-3 font-medium">Assigned To</th>
-                    <th className="text-left p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredClients.map((client) => (
-                    <tr
-                      key={client.id}
-                      className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                      <td
-                        className="p-3 font-medium text-primary"
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                      >
-                        {client.name}
-                      </td>
-                      <td className="p-3">{client.email}</td>
-                      <td className="p-3">{client.country}</td>
-                      <td className="p-3">{client.industry}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          client.status === 'Active' ? 'bg-success/10 text-success' :
-                          client.status === 'Lead' ? 'bg-primary/10 text-primary' :
-                          client.status === 'Pending' ? 'bg-warning/10 text-warning' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {client.status}
-                        </span>
-                      </td>
-                      <td className="p-3">${client.potentialValue.toLocaleString()}</td>
-                      <td className="p-3">{client.assignedTo}</td>
-                      <td className="p-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(client.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading clients...</div>
+            ) : filteredClients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'No clients found matching your search.' : 'No clients yet. Add your first client to get started!'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 font-medium">Name</th>
+                      <th className="text-left p-3 font-medium">Email</th>
+                      <th className="text-left p-3 font-medium">Country</th>
+                      <th className="text-left p-3 font-medium">Industry</th>
+                      <th className="text-left p-3 font-medium">Status</th>
+                      <th className="text-left p-3 font-medium">Assigned To</th>
+                      <th className="text-left p-3 font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredClients.map((client) => (
+                      <tr
+                        key={client.id}
+                        className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
+                      >
+                        <td
+                          className="p-3 font-medium text-primary"
+                          onClick={() => navigate(`/clients/${client.id}`)}
+                        >
+                          {client.name}
+                        </td>
+                        <td className="p-3">{client.email}</td>
+                        <td className="p-3">{client.country}</td>
+                        <td className="p-3">{client.industry}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
+                            {client.status}
+                          </span>
+                        </td>
+                        <td className="p-3">{client.profiles?.name || 'Unassigned'}</td>
+                        <td className="p-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/clients/${client.id}`)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(client.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

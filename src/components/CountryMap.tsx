@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CountryData {
   country: string;
@@ -8,21 +9,49 @@ interface CountryData {
   coordinates: [number, number]; // [lat, lng]
 }
 
-const countryData: CountryData[] = [
-  { country: 'USA', count: 180, coordinates: [37.0902, -95.7129] },
-  { country: 'UK', count: 95, coordinates: [55.3781, -3.436] },
-  { country: 'Germany', count: 78, coordinates: [51.1657, 10.4515] },
-  { country: 'France', count: 62, coordinates: [46.2276, 2.2137] },
-  { country: 'Canada', count: 45, coordinates: [56.1304, -106.3468] },
-  { country: 'Australia', count: 51, coordinates: [-25.2744, 133.7751] },
-];
-
 export const CountryMap = () => {
+  const [countryData, setCountryData] = useState<CountryData[]>([]);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const leafletMap = useRef<L.Map | null>(null);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    const fetchClientLocations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('country, latitude, longitude');
+
+        if (error) throw error;
+
+        // Group by country and aggregate
+        const grouped = data.reduce((acc, client) => {
+          if (!acc[client.country]) {
+            acc[client.country] = { count: 0, lat: Number(client.latitude), lng: Number(client.longitude) };
+          }
+          acc[client.country].count++;
+          return acc;
+        }, {} as Record<string, { count: number; lat: number; lng: number }>);
+
+        const aggregated: CountryData[] = Object.entries(grouped).map(([country, data]) => ({
+          country,
+          count: data.count,
+          coordinates: [data.lat, data.lng],
+        }));
+
+        setCountryData(aggregated);
+      } catch (error) {
+        console.error('Error fetching client locations:', error);
+      }
+    };
+
+    fetchClientLocations();
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || countryData.length === 0) return;
+    if (leafletMap.current) {
+      leafletMap.current.remove();
+    }
 
     // Initialize Leaflet map
     leafletMap.current = L.map(mapRef.current, {
@@ -63,7 +92,7 @@ export const CountryMap = () => {
       leafletMap.current?.remove();
       leafletMap.current = null;
     };
-  }, []);
+  }, [countryData]);
 
   return (
     <div className="relative w-full h-[300px] rounded-lg overflow-hidden">
