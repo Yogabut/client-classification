@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function Register() {
   const { register, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -42,6 +43,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       await register(data.name, data.email, data.password, data.role);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
     } finally {

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface User {
@@ -24,7 +23,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -57,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mockUser);
       
       toast.success('Login successful!');
-      navigate('/dashboard');
     } catch (error) {
       toast.error('Login failed. Please try again.');
       throw error;
@@ -84,7 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mockUser);
       
       toast.success('Registration successful!');
-      navigate('/dashboard');
     } catch (error) {
       toast.error('Registration failed. Please try again.');
       throw error;
@@ -96,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setUser(null);
     toast.success('Logged out successfully');
-    navigate('/login');
   };
 
   const updateUser = (userData: Partial<User>) => {

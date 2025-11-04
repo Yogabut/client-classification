@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -37,6 +38,7 @@ export default function Login() {
     setIsLoading(true);
     try {
       await login(data.email, data.password);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
     } finally {

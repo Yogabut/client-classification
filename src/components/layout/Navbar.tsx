@@ -17,6 +17,11 @@ export const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -72,7 +77,7 @@ export const Navbar = () => {
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
