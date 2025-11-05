@@ -23,6 +23,7 @@ interface Client {
   country: string;
   industry: string;
   status: string;
+  revenue: number;
   assigned_user_id: string | null;
   profiles?: { name: string } | null;
 }
@@ -133,6 +134,7 @@ export default function Clients() {
                       <th className="text-left p-3 font-medium">Email</th>
                       <th className="text-left p-3 font-medium">Country</th>
                       <th className="text-left p-3 font-medium">Industry</th>
+                      <th className="text-left p-3 font-medium">Revenue</th>
                       <th className="text-left p-3 font-medium">Status</th>
                       <th className="text-left p-3 font-medium">Assigned To</th>
                       <th className="text-left p-3 font-medium">Actions</th>
@@ -153,6 +155,9 @@ export default function Clients() {
                         <td className="p-3">{client.email}</td>
                         <td className="p-3">{client.country}</td>
                         <td className="p-3">{client.industry}</td>
+                        <td className="p-3 font-semibold text-success">
+                          ${client.revenue?.toLocaleString() || '0'}
+                        </td>
                         <td className="p-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
                             {client.status}

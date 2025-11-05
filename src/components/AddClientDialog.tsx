@@ -8,7 +8,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -17,16 +17,10 @@ const clientSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
   phone: z.string().optional(),
   country: z.string().min(2, 'Country is required').max(100),
-  latitude: z.string().refine((val) => {
-    const num = parseFloat(val);
-    return !isNaN(num) && num >= -90 && num <= 90;
-  }, 'Latitude must be between -90 and 90'),
-  longitude: z.string().refine((val) => {
-    const num = parseFloat(val);
-    return !isNaN(num) && num >= -180 && num <= 180;
-  }, 'Longitude must be between -180 and 180'),
+  address: z.string().min(2, 'Address is required'),
   industry: z.string().min(2, 'Industry is required').max(100),
   status: z.enum(['active', 'pending', 'inactive', 'negotiation']),
+  revenue: z.number().min(0, 'Revenue must be positive'),
   notes: z.string().max(1000).optional(),
 });
 
@@ -35,6 +29,25 @@ type ClientFormData = z.infer<typeof clientSchema>;
 interface AddClientDialogProps {
   onClientAdded?: () => void;
 }
+
+const geocodeAddress = async (address: string, country: string): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const query = encodeURIComponent(`${address}, ${country}`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+};
 
 export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
   const [open, setOpen] = useState(false);
@@ -47,10 +60,10 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
       email: '',
       phone: '',
       country: '',
-      latitude: '',
-      longitude: '',
+      address: '',
       industry: '',
       status: 'pending',
+      revenue: 0,
       notes: '',
     },
   });
@@ -58,6 +71,15 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
   const onSubmit = async (data: ClientFormData) => {
     setIsLoading(true);
     try {
+      // Geocode the address
+      const coords = await geocodeAddress(data.address, data.country);
+      
+      if (!coords) {
+        toast.error('Could not find coordinates for this address. Please check the address and try again.');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       
       const { error } = await supabase.from('clients').insert([
@@ -66,10 +88,11 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
           email: data.email,
           phone: data.phone || null,
           country: data.country,
-          latitude: parseFloat(data.latitude),
-          longitude: parseFloat(data.longitude),
+          latitude: coords.lat,
+          longitude: coords.lng,
           industry: data.industry,
           status: data.status,
+          revenue: data.revenue,
           notes: data.notes || null,
           assigned_user_id: user?.id || null,
           last_contact: new Date().toISOString(),
@@ -78,7 +101,7 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
 
       if (error) throw error;
 
-      toast.success('Client added successfully!');
+      toast.success('Client added successfully with geocoded location!');
       form.reset();
       setOpen(false);
       onClientAdded?.();
@@ -101,7 +124,7 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
         <DialogHeader>
           <DialogTitle>Add New Client</DialogTitle>
           <DialogDescription>
-            Enter the client details including their location coordinates for the map.
+            Enter the client details. Location will be automatically geocoded from the address.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -164,20 +187,38 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="United States" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123 Main St, New York, NY 10001" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Full address will be geocoded automatically
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="country"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Country *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="United States" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="status"
@@ -201,47 +242,21 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
                   </FormItem>
                 )}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="latitude"
+                name="revenue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Latitude *</FormLabel>
+                    <FormLabel>Expected Revenue ($) *</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
-                        step="any"
-                        placeholder="37.7749" 
-                        {...field} 
+                        step="0.01"
+                        placeholder="50000"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Between -90 and 90
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="longitude"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Longitude *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="any"
-                        placeholder="-122.4194" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Between -180 and 180
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -267,11 +282,12 @@ export const AddClientDialog = ({ onClientAdded }: AddClientDialogProps) => {
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Adding...' : 'Add Client'}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? 'Geocoding & Adding...' : 'Add Client'}
               </Button>
             </DialogFooter>
           </form>

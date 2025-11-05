@@ -23,6 +23,7 @@ export default function Dashboard() {
     totalClients: 0,
     activeDeals: 0,
     conversionRate: 0,
+    totalRevenue: 0,
   });
   const [statusData, setStatusData] = useState<{ name: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,7 @@ export default function Dashboard() {
       // Fetch all clients for statistics
       const { data: allClients, error: allError } = await supabase
         .from('clients')
-        .select('status');
+        .select('status, revenue');
 
       if (allError) throw allError;
 
@@ -54,11 +55,13 @@ export default function Dashboard() {
       const total = allClients?.length || 0;
       const active = allClients?.filter(c => c.status === 'active').length || 0;
       const conversion = total > 0 ? Math.round((active / total) * 100) : 0;
+      const totalRevenue = allClients?.reduce((sum, client) => sum + (client.revenue || 0), 0) || 0;
 
       setStats({
         totalClients: total,
         activeDeals: active,
         conversionRate: conversion,
+        totalRevenue,
       });
 
       // Group by status for chart
@@ -81,11 +84,17 @@ export default function Dashboard() {
     }
   };
 
+  const formatRevenue = (revenue: number) => {
+    if (revenue >= 1000000) return `$${(revenue / 1000000).toFixed(1)}M`;
+    if (revenue >= 1000) return `$${(revenue / 1000).toFixed(1)}K`;
+    return `$${revenue.toFixed(0)}`;
+  };
+
   const statsCards = [
     { title: 'Total Clients', value: stats.totalClients.toString(), icon: Users, change: '+12.5%', color: 'text-primary' },
     { title: 'Active Deals', value: stats.activeDeals.toString(), icon: Target, change: '+8.2%', color: 'text-success' },
     { title: 'Conversion Rate', value: `${stats.conversionRate}%`, icon: TrendingUp, change: '+4.3%', color: 'text-accent' },
-    { title: 'Revenue', value: '$1.2M', icon: DollarSign, change: '+18.7%', color: 'text-warning' },
+    { title: 'Revenue', value: formatRevenue(stats.totalRevenue), icon: DollarSign, change: '+18.7%', color: 'text-warning' },
   ];
 
   const getStatusColor = (status: string) => {
