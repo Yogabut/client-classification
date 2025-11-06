@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mail, Phone, MapPin, Building, DollarSign, Upload, Plus } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Building, DollarSign, Plus, Trash2, Edit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,80 +12,238 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  country: string;
+  industry: string;
+  status: string;
+  revenue: number;
+  notes: string | null;
+}
+
+interface Interaction {
+  id: string;
+  type: string;
+  note: string;
+  created_at: string;
+  user_id: string;
+  profiles?: { name: string } | null;
+}
 
 export default function ClientDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
+  const [client, setClient] = useState<Client | null>(null);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false);
-  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
-  const [clientStatus, setClientStatus] = useState('Active');
+  const [editingInteraction, setEditingInteraction] = useState<Interaction | null>(null);
 
-  const client = {
-    id,
-    name: 'Acme Corp',
-    email: 'contact@acme.com',
-    phone: '+1 (555) 123-4567',
-    country: 'USA',
-    industry: 'Technology',
-    status: 'Active',
-    potentialValue: 50000,
-    assignedTo: 'John Doe',
-    address: '123 Business St, New York, NY 10001',
+  useEffect(() => {
+    if (id) {
+      fetchClient();
+      fetchInteractions();
+    }
+  }, [id]);
+
+  const fetchClient = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      setClient(data);
+    } catch (error) {
+      console.error('Error fetching client:', error);
+      toast.error('Failed to load client details');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const fetchInteractions = async () => {
+    try {
+      const { data: interactionsData, error: interactionsError } = await supabase
+        .from('interactions')
+        .select('*')
+        .eq('client_id', id)
+        .order('created_at', { ascending: false });
 
-  const [attachments, setAttachments] = useState([
-    { id: 1, name: 'Proposal_Q1_2024.pdf', size: '2.4 MB', date: '2024-01-15' },
-    { id: 2, name: 'Contract_Draft.docx', size: '1.1 MB', date: '2024-01-10' },
-  ]);
+      if (interactionsError) throw interactionsError;
 
-  const [interactions, setInteractions] = useState([
-    { id: 1, date: '2024-01-15', type: 'Email', note: 'Sent proposal for Q1 2024', user: 'John Doe' },
-    { id: 2, date: '2024-01-10', type: 'Call', note: 'Discussed project requirements', user: 'John Doe' },
-    { id: 3, date: '2024-01-05', type: 'Meeting', note: 'Initial consultation meeting', user: 'Jane Smith' },
-  ]);
+      // Fetch profiles separately
+      const userIds = [...new Set(interactionsData?.map(i => i.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', userIds);
 
-  const handleStatusUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newStatus = formData.get('status') as string;
-    setClientStatus(newStatus);
-    toast.success(`Client status updated to ${newStatus}`);
-    setIsStatusDialogOpen(false);
+      if (profilesError) throw profilesError;
+
+      // Join profiles with interactions
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const enrichedInteractions = interactionsData?.map(interaction => ({
+        ...interaction,
+        profiles: profilesMap.get(interaction.user_id) || null,
+      })) || [];
+
+      setInteractions(enrichedInteractions);
+    } catch (error) {
+      console.error('Error fetching interactions:', error);
+      toast.error('Failed to load interactions');
+    }
   };
 
-  const handleAddInteraction = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleStatusUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newInteraction = {
-      id: interactions.length + 1,
-      date: new Date().toISOString().split('T')[0],
-      type: formData.get('type') as string,
-      note: formData.get('note') as string,
-      user: 'Current User',
-    };
-    setInteractions([newInteraction, ...interactions]);
-    toast.success('Interaction logged successfully');
+    const newStatus = formData.get('status') as 'active' | 'inactive' | 'negotiation' | 'pending';
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setClient(prev => prev ? { ...prev, status: newStatus } : null);
+      toast.success(`Client status updated to ${newStatus}`);
+      setIsStatusDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Failed to update client status');
+    }
+  };
+
+  const handleAddInteraction = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const { data, error } = await supabase
+        .from('interactions')
+        .insert([{
+          client_id: id,
+          user_id: user?.id,
+          type: formData.get('type') as string,
+          note: formData.get('note') as string,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Fetch profile for the new interaction
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', user?.id)
+        .single();
+
+      const enrichedInteraction = {
+        ...data,
+        profiles: profileData || null,
+      };
+
+      setInteractions([enrichedInteraction, ...interactions]);
+      toast.success('Interaction logged successfully');
+      setIsInteractionDialogOpen(false);
+      e.currentTarget.reset();
+    } catch (error) {
+      console.error('Error adding interaction:', error);
+      toast.error('Failed to log interaction');
+    }
+  };
+
+  const handleEditInteraction = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingInteraction) return;
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const { error } = await supabase
+        .from('interactions')
+        .update({
+          type: formData.get('type') as string,
+          note: formData.get('note') as string,
+        })
+        .eq('id', editingInteraction.id);
+
+      if (error) throw error;
+
+      await fetchInteractions();
+      toast.success('Interaction updated successfully');
+      setEditingInteraction(null);
+      setIsInteractionDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating interaction:', error);
+      toast.error('Failed to update interaction');
+    }
+  };
+
+  const handleDeleteInteraction = async (interactionId: string) => {
+    if (!confirm('Are you sure you want to delete this interaction?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('interactions')
+        .delete()
+        .eq('id', interactionId);
+
+      if (error) throw error;
+
+      setInteractions(interactions.filter(i => i.id !== interactionId));
+      toast.success('Interaction deleted successfully');
+    } catch (error) {
+      console.error('Error deleting interaction:', error);
+      toast.error('Failed to delete interaction');
+    }
+  };
+
+  const openEditDialog = (interaction: Interaction) => {
+    setEditingInteraction(interaction);
+    setIsInteractionDialogOpen(true);
+  };
+
+  const closeInteractionDialog = () => {
+    setEditingInteraction(null);
     setIsInteractionDialogOpen(false);
   };
 
-  const handleFileUpload = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const file = formData.get('file') as File;
-    if (file) {
-      const newAttachment = {
-        id: attachments.length + 1,
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        date: new Date().toISOString().split('T')[0],
-      };
-      setAttachments([...attachments, newAttachment]);
-      toast.success('File uploaded successfully');
-      setIsAttachmentDialogOpen(false);
-    }
-  };
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading client details...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!client) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <p className="text-muted-foreground">Client not found</p>
+          <Button onClick={() => navigate('/clients')}>Back to Clients</Button>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -112,15 +270,15 @@ export default function ClientDetail() {
               <form onSubmit={handleStatusUpdate} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select name="status" defaultValue={clientStatus}>
+                  <Select name="status" defaultValue={client.status}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Lead">Lead</SelectItem>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="negotiation">Negotiation</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -181,17 +339,17 @@ export default function ClientDetail() {
               <div className="flex items-center gap-3">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Potential Value</p>
-                  <p className="font-medium">${client.potentialValue.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Revenue</p>
+                  <p className="font-medium">${client.revenue?.toLocaleString() || 0}</p>
                 </div>
               </div>
               <div className="pt-4">
                 <Badge className={`${
-                  clientStatus === 'Active' ? 'bg-success' :
-                  clientStatus === 'Lead' ? 'bg-primary' :
-                  clientStatus === 'Pending' ? 'bg-warning' :
+                  client.status === 'active' ? 'bg-success' :
+                  client.status === 'pending' ? 'bg-warning' :
+                  client.status === 'negotiation' ? 'bg-primary' :
                   'bg-muted'
-                }`}>{clientStatus}</Badge>
+                }`}>{client.status}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -199,13 +357,12 @@ export default function ClientDetail() {
           <Card className="md:col-span-2">
             <CardContent className="pt-6">
               <Tabs defaultValue="interactions">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList>
                   <TabsTrigger value="interactions">Interactions</TabsTrigger>
-                  <TabsTrigger value="attachments">Attachments</TabsTrigger>
                 </TabsList>
                 <TabsContent value="interactions" className="space-y-4">
                   <div className="flex justify-end mb-4">
-                    <Dialog open={isInteractionDialogOpen} onOpenChange={setIsInteractionDialogOpen}>
+                    <Dialog open={isInteractionDialogOpen} onOpenChange={closeInteractionDialog}>
                       <DialogTrigger asChild>
                         <Button size="sm">
                           <Plus className="mr-2 h-4 w-4" />
@@ -214,12 +371,14 @@ export default function ClientDetail() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Log New Interaction</DialogTitle>
+                          <DialogTitle>
+                            {editingInteraction ? 'Edit Interaction' : 'Log New Interaction'}
+                          </DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={handleAddInteraction} className="space-y-4">
+                        <form onSubmit={editingInteraction ? handleEditInteraction : handleAddInteraction} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="type">Interaction Type</Label>
-                            <Select name="type" required>
+                            <Select name="type" defaultValue={editingInteraction?.type} required>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
                               </SelectTrigger>
@@ -236,91 +395,66 @@ export default function ClientDetail() {
                             <Textarea
                               id="note"
                               name="note"
+                              defaultValue={editingInteraction?.note}
                               placeholder="What happened during this interaction?"
                               rows={4}
                               required
                             />
                           </div>
                           <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" onClick={() => setIsInteractionDialogOpen(false)}>
+                            <Button type="button" variant="outline" onClick={closeInteractionDialog}>
                               Cancel
                             </Button>
-                            <Button type="submit">Log Interaction</Button>
+                            <Button type="submit">
+                              {editingInteraction ? 'Update' : 'Log Interaction'}
+                            </Button>
                           </div>
                         </form>
                       </DialogContent>
                     </Dialog>
                   </div>
-                  {interactions.map((interaction) => (
-                    <div key={interaction.id} className="border-l-2 border-primary pl-4 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline">{interaction.type}</Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {interaction.date}
-                        </span>
-                      </div>
-                      <p className="font-medium">{interaction.note}</p>
-                      <p className="text-sm text-muted-foreground">by {interaction.user}</p>
-                    </div>
-                  ))}
-                </TabsContent>
-                <TabsContent value="attachments" className="space-y-4">
-                  <div className="flex justify-end mb-4">
-                    <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm">
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload File
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Upload Attachment</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleFileUpload} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="file">Select File</Label>
-                            <Input
-                              id="file"
-                              name="file"
-                              type="file"
-                              required
-                              accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Supported formats: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG
-                            </p>
+                  {interactions.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No interactions logged yet
+                    </p>
+                  ) : (
+                    interactions.map((interaction) => (
+                      <div key={interaction.id} className="border-l-2 border-primary pl-4 py-2 relative group">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{interaction.type}</Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(interaction.created_at), 'MMM dd, yyyy HH:mm')}
+                            </span>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="description">Description (Optional)</Label>
-                            <Textarea
-                              id="description"
-                              name="description"
-                              placeholder="Brief description of this file..."
-                              rows={3}
-                            />
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" onClick={() => setIsAttachmentDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button type="submit">Upload</Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  {attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div>
-                        <p className="font-medium">{attachment.name}</p>
+                          {interaction.user_id === user?.id && (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEditDialog(interaction)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => handleDeleteInteraction(interaction.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="font-medium">{interaction.note}</p>
                         <p className="text-sm text-muted-foreground">
-                          {attachment.size} • {attachment.date}
+                          by {interaction.profiles?.name || 'Unknown User'}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">Download</Button>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
