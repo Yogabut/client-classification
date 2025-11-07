@@ -294,8 +294,15 @@ export default function ClientDetail() {
   };
 
   const closeInteractionDialog = () => {
+    console.log('Closing interaction dialog');
     setEditingInteraction(null);
     setIsInteractionDialogOpen(false);
+  };
+
+  const openInteractionDialog = () => {
+    console.log('Opening interaction dialog');
+    setEditingInteraction(null);
+    setIsInteractionDialogOpen(true);
   };
 
   const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -585,9 +592,19 @@ export default function ClientDetail() {
                       </PopoverContent>
                     </Popover>
                     <div className="ml-auto">
-                      <Dialog open={isInteractionDialogOpen} onOpenChange={closeInteractionDialog}>
+                      <Dialog open={isInteractionDialogOpen} onOpenChange={(open) => {
+                        console.log('Interaction dialog state change:', open);
+                        if (!open) {
+                          closeInteractionDialog();
+                        } else {
+                          setIsInteractionDialogOpen(true);
+                        }
+                      }}>
                         <DialogTrigger asChild>
-                          <Button size="sm">
+                          <Button size="sm" onClick={() => {
+                            console.log('Log Interaction button clicked');
+                            openInteractionDialog();
+                          }}>
                             <Plus className="mr-2 h-4 w-4" />
                             Log Interaction
                           </Button>
@@ -600,9 +617,9 @@ export default function ClientDetail() {
                           </DialogHeader>
                           <form onSubmit={editingInteraction ? handleEditInteraction : handleAddInteraction} className="space-y-4">
                             <div className="space-y-2">
-                              <Label htmlFor="type">Interaction Type</Label>
+                              <Label htmlFor="interaction-type">Interaction Type</Label>
                               <Select name="type" defaultValue={editingInteraction?.type} required>
-                                <SelectTrigger>
+                                <SelectTrigger id="interaction-type">
                                   <SelectValue placeholder="Select type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -614,9 +631,9 @@ export default function ClientDetail() {
                               </Select>
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="note">Details</Label>
+                              <Label htmlFor="interaction-note">Details</Label>
                               <Textarea
-                                id="note"
+                                id="interaction-note"
                                 name="note"
                                 defaultValue={editingInteraction?.note}
                                 placeholder="What happened during this interaction?"
@@ -682,9 +699,15 @@ export default function ClientDetail() {
                 </TabsContent>
                 <TabsContent value="attachments" className="space-y-4">
                   <div className="flex justify-end mb-4">
-                    <Dialog open={isAttachmentDialogOpen} onOpenChange={setIsAttachmentDialogOpen}>
+                    <Dialog open={isAttachmentDialogOpen} onOpenChange={(open) => {
+                      console.log('Attachment dialog state change:', open);
+                      setIsAttachmentDialogOpen(open);
+                    }}>
                       <DialogTrigger asChild>
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => {
+                          console.log('Upload File button clicked');
+                          setIsAttachmentDialogOpen(true);
+                        }}>
                           <Upload className="mr-2 h-4 w-4" />
                           Upload File
                         </Button>
@@ -695,9 +718,9 @@ export default function ClientDetail() {
                         </DialogHeader>
                         <form onSubmit={handleFileUpload} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="file">Select File</Label>
+                            <Label htmlFor="attachment-file">Select File</Label>
                             <Input
-                              id="file"
+                              id="attachment-file"
                               name="file"
                               type="file"
                               required
@@ -708,9 +731,9 @@ export default function ClientDetail() {
                             </p>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="description">Description (Optional)</Label>
+                            <Label htmlFor="attachment-description">Description (Optional)</Label>
                             <Textarea
-                              id="description"
+                              id="attachment-description"
                               name="description"
                               placeholder="Brief description of this file..."
                               rows={3}
