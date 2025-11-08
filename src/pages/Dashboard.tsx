@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { CountryMap } from '@/components/CountryMap';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Client {
   id: string;
@@ -30,6 +31,59 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Subscribe to realtime changes on clients table
+    const channel = supabase
+      .channel('clients-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'clients'
+        },
+        (payload) => {
+          console.log('New client added:', payload);
+          toast.success(`New client "${payload.new.name}" has been added!`);
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clients'
+        },
+        (payload) => {
+          console.log('Client updated:', payload);
+          const oldStatus = payload.old.status;
+          const newStatus = payload.new.status;
+          
+          if (oldStatus !== newStatus) {
+            toast.info(`Client "${payload.new.name}" status changed from ${oldStatus} to ${newStatus}`);
+          }
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'clients'
+        },
+        (payload) => {
+          console.log('Client deleted:', payload);
+          toast.info(`Client "${payload.old.name}" has been deleted`);
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
