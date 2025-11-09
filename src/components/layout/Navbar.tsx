@@ -31,17 +31,7 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="h-16 border-b bg-card px-6 flex items-center justify-between sticky top-0 z-10">
-      <div className="flex items-center gap-4 flex-1 max-w-2xl">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search clients, tasks..."
-            className="pl-10"
-          />
-        </div>
-      </div>
-
+    <header className="h-16 border-b bg-card px-6 flex items-center justify-end sticky top-0 z-10">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
