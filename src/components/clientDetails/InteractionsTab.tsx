@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/clientDetails/InteractionsTab.tsx
-
 import { useState } from 'react';
 import { InteractionsList } from './InteractionsList';
 import { InteractionDialog } from './InteractionDialog';

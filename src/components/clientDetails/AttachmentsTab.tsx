@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/clientDetails/AttachmentsTab.tsx
-
 import { useState } from 'react';
 import { AttachmentsList } from './AttachmentsList';
 import { AttachmentUploadDialog } from './AttachmentUploadDialog';

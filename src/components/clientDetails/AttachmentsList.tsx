@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/components/clientDetails/AttachmentsList.tsx
-
 import { Button } from '@/components/ui/button';
 import { Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';

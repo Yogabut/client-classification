@@ -1,5 +1,3 @@
-// src/components/clientDetails/ClientInformationCard.tsx
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Mail, Phone, MapPin, Building, DollarSign } from 'lucide-react';
