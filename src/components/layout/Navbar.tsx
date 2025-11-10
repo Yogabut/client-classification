@@ -27,7 +27,8 @@ export const Navbar = () => {
       .split(' ')
       .map((n) => n[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (

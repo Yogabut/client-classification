@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CheckSquare, 
-  UserCircle, 
+import {
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  UserCircle,
   Settings,
   ChevronLeft,
   LogOut
@@ -32,21 +32,42 @@ export const Sidebar = () => {
     <aside
       className={cn(
         'h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 flex flex-col border-r border-sidebar-border sticky top-0',
-        collapsed ? 'w-16' : 'w-64'
+        collapsed ? 'w-20' : 'w-64'
       )}
     >
-      <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
-        {!collapsed && <h1 className="text-xl font-bold text-sidebar-primary">CRM Pro</h1>}
+
+      <div className="relative p-4 border-b border-sidebar-border flex items-center justify-center">
+        <div className="flex items-center">
+          <img
+            src="/CRM-logo.png"
+            alt="Logo"
+            className="h-10 w-auto mx-auto"
+          />
+          {!collapsed && (
+            <h1
+              className="text-xl font-bold bg-gradient-to-r from-[#9699f6] to-[#5e38af] bg-clip-text text-transparent tracking-wide"
+            >
+              ClientsDesk
+            </h1>
+          )}
+        </div>
+
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
+          className="absolute top-4 right-4 text-sidebar-foreground hover:bg-sidebar-accent"
         >
-          <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
+          <ChevronLeft
+            className={cn(
+              'h-4 w-4 transition-transform duration-300',
+              collapsed && 'rotate-180'
+            )}
+          />
         </Button>
       </div>
 
+      {/* ===== NAVIGATION LINKS ===== */}
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => (
           <NavLink
@@ -66,6 +87,7 @@ export const Sidebar = () => {
         ))}
       </nav>
 
+      {/* ===== LOGOUT BUTTON ===== */}
       <div className="p-4 border-t border-sidebar-border">
         <Button
           variant="ghost"

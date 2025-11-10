@@ -12,6 +12,7 @@ export interface Client {
   industry: string;
   status: string;
   revenue: number;
+  notes: string | null;
   assigned_user_id: string | null;
   profiles?: { name: string } | null;
 }

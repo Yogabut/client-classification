@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Phone, MapPin, Building, DollarSign } from 'lucide-react';
+import { Mail, Phone, MapPin, Building, DollarSign, Notebook } from 'lucide-react';
 import { Client } from './types';
 
 interface ClientInformationCardProps {
@@ -42,6 +42,7 @@ export function ClientInformationCard({ client }: ClientInformationCardProps) {
             <p className="font-medium">{client.industry}</p>
           </div>
         </div>
+        
         <div className="flex items-center gap-3">
           <DollarSign className="h-4 w-4 text-muted-foreground" />
           <div>
@@ -49,6 +50,15 @@ export function ClientInformationCard({ client }: ClientInformationCardProps) {
             <p className="font-medium">${client.revenue?.toLocaleString() || 0}</p>
           </div>
         </div>
+
+        <div className="flex items-center gap-3">
+          <Notebook className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <p className="text-sm text-muted-foreground">Notes</p>
+            <p className="font-medium">{client.notes}</p>
+          </div>
+        </div>
+        
         <div className="pt-4">
           <Badge className={`${
             client.status === 'active' ? 'bg-success' :
