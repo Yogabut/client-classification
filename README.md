@@ -1,73 +1,175 @@
-# Welcome to your Lovable project
 
-## Project info
 
-**URL**: https://lovable.dev/projects/88561d77-9310-48a7-ab67-52788c008d75
+## 🧾 **`ClientsDesk CRM`**
 
-## How can I edit this code?
+A modern **Client Relationship Management (CRM)** web app built with **React + TypeScript**, designed to help teams manage clients, leads, tasks, and sales pipelines efficiently.  
+Built by **Yoga Asta**
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🌐 Overview
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/88561d77-9310-48a7-ab67-52788c008d75) and start prompting.
+ClientsDesk CRM gives businesses the tools they need to organize client data, track interactions, schedule reminders, and analyze sales insights — all in one sleek dashboard.
 
-Changes made via Lovable will be committed automatically to this repo.
+This system is fully modular, easy to maintain, and scalable for agencies, startups, and sales teams.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🔐 Authentication
+- Secure Register & Login
+- JWT-based auth
+- Role-based access (Admin, Sales, Marketing)
 
-Follow these steps:
+### 👤 Profile
+- Edit user info (name, email, phone)
+- Upload profile picture
+- Change password
+- Activity log (recent logins & actions)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 📊 Dashboard
+- Overview of client pipeline
+- Filter & search clients
+- Analytics chart (lead conversion, revenue, etc.)
+- Quick notes & interaction logs
+- Reminder system for follow-ups
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🧾 Clients Management
+- CRUD clients (add, edit, delete)
+- Classify by **country, status, and lead stage**
+- Track client interaction history
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🧠 Tasks & Reminders
+- Assign reminders to specific clients
+- Integration-ready (Google Calendar / Email)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### ⚙️ Admin Panel
+- Manage users and roles
+- View activity logs
+
+---
+
+## 🧩 Tech Stack
+
+| Layer | Technology |
+|-------|-------------|
+| **Frontend** | React + TypeScript + Vite |
+| **UI Library** | TailwindCSS + Shadcn/UI + Lucide Icons |
+| **State Management** | Context API / React Query *(optional)* |
+| **Routing** | React Router DOM |
+| **Backend (optional)** | Express.js + MySQL (or Supabase) |
+| **Auth** | JWT-based Authentication |
+| **Deployment** | Vercel / Railway / Netlify |
+| **Version Control** | Git + GitHub |
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1️⃣ Clone Repository
+```bash
+git clone https://github.com/yourusername/clientsdesk-crm.git
+cd clientsdesk-crm
+````
+
+### 2️⃣ Install Dependencies
+
+```bash
+npm install
+```
+
+### 3️⃣ Environment Variables
+
+Create a `.env` file in the root directory:
+
+```
+VITE_API_URL=http://localhost:5000/api
+VITE_APP_NAME=ClientsDesk
+```
+
+### 4️⃣ Run Development Server
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will run on [http://localhost:5173](http://localhost:5173)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🧱 Folder Structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+├── assets/              # Images, icons, etc.
+├── components/          # Reusable UI components
+├── contexts/            # AuthContext, ThemeContext, etc.
+├── pages/               # Dashboard, Clients, Profile, etc.
+├── routes/              # Route configurations
+├── lib/                 # Helper functions, utils
+├── styles/              # Tailwind + global styles
+└── main.tsx             # Entry point
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 🧠 Developer Notes
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+* Sidebar can collapse / expand dynamically.
+* “ClientsDesk” text uses gradient color from `#FDCFFA → #D78FEE`.
+* Built with modularity in mind for future integrations (AI assistant, data analytics, etc.).
+* Design follows modern CRM layout principles (Notion + Hubspot inspired).
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/88561d77-9310-48a7-ab67-52788c008d75) and click on Share -> Publish.
+## 🪴 SEO Optimization
 
-## Can I connect a custom domain to my Lovable project?
+* Custom meta tags in `/index.html`
+* Open Graph image → `/public/og-image.png`
+* `favicon.ico` ready in `/public`
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📦 Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 🚀 Vercel
+
+```bash
+npm run build
+vercel deploy
+```
+
+### 🚀 Netlify
+
+```bash
+npm run build
+netlify deploy
+```
+
+### 🚀 Railway (Fullstack)
+
+* Deploy backend API on Railway
+* Connect frontend to backend URL (`VITE_API_URL`)
+
+---
+
+## 💡 Future Improvements
+
+* AI lead scoring system
+* Email integration (auto follow-up)
+* Dashboard analytics with Recharts
+* Role-based permissions UI
+* Mobile-friendly version
+
+---
+
+## 👨‍💻 Author
+
+**Yoga Asta**
+💌 Email: [yoga.asta.pra@gmail.com](mailto:yogaasta@example.com)
+🌍 Bali, Indonesia
+
+> “Turning ideas into scalable digital systems — one project at a time.”
+
+---
