@@ -9,7 +9,7 @@ interface RecentClientsTableProps {
 
 export const RecentClientsTable = ({ clients, loading }: RecentClientsTableProps) => {
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Recent Clients</CardTitle>
       </CardHeader>
@@ -22,23 +22,26 @@ export const RecentClientsTable = ({ clients, loading }: RecentClientsTableProps
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2 font-medium">Name</th>
-                  <th className="text-left p-2 font-medium">Country</th>
-                  <th className="text-left p-2 font-medium">Industry</th>
-                  <th className="text-left p-2 font-medium">Status</th>
-                  <th className="text-left p-2 font-medium">Last Contact</th>
-                  <th className="text-left p-2 font-medium">Assigned To</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((client) => (
-                  <RecentClientsTableRow key={client.id} client={client} />
-                ))}
-              </tbody>
-            </table>
+            {/* ✅ Scroll hanya di bagian body tabel */}
+            <div className="max-h-[300px] overflow-y-auto rounded-md border">
+              <table className="w-full border-collapse text-sm">
+                <thead className="sticky top-0 bg-background z-10">
+                  <tr className="border-b">
+                    <th className="text-left p-3 font-medium">Name</th>
+                    <th className="text-left p-3 font-medium">Country</th>
+                    <th className="text-left p-3 font-medium">Industry</th>
+                    <th className="text-left p-3 font-medium">Status</th>
+                    <th className="text-left p-3 font-medium">Last Contact</th>
+                    <th className="text-left p-3 font-medium">Assigned To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => (
+                    <RecentClientsTableRow key={client.id} client={client} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </CardContent>

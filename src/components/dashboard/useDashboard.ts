@@ -24,6 +24,12 @@ export interface StatusData {
   value: number;
 }
 
+export interface IndustryData {
+  name: string;
+  value: number;
+  fill: string;
+}
+
 export const useDashboard = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -33,10 +39,12 @@ export const useDashboard = () => {
     totalRevenue: 0,
   });
   const [statusData, setStatusData] = useState<StatusData[]>([]);
+  const [industryData, setIndustryData] = useState<IndustryData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
     try {
+      // Fetch recent clients
       const { data, error } = await supabase
         .from('clients')
         .select('*, profiles(name)')
@@ -48,7 +56,7 @@ export const useDashboard = () => {
       // Fetch all clients for statistics
       const { data: allClients, error: allError } = await supabase
         .from('clients')
-        .select('status, revenue');
+        .select('status, revenue, industry');
 
       if (allError) throw allError;
 
@@ -80,6 +88,33 @@ export const useDashboard = () => {
       }));
 
       setStatusData(chartData);
+
+      // Group by industry for donut chart
+      const industryGroups = allClients?.reduce((acc, client) => {
+        const industry = client.industry || 'Unknown';
+        acc[industry] = (acc[industry] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Define colors for different industries
+      const colors = [
+        'hsl(var(--chart-1))',
+        'hsl(var(--chart-2))',
+        'hsl(var(--chart-3))',
+        'hsl(var(--chart-4))',
+        'hsl(var(--chart-5))',
+        'hsl(142, 76%, 36%)', // success
+        'hsl(47, 96%, 53%)', // warning
+        'hsl(221, 83%, 53%)', // primary
+      ];
+
+      const industryChartData = Object.entries(industryGroups || {}).map(([name, value], index) => ({
+        name,
+        value,
+        fill: colors[index % colors.length],
+      }));
+
+      setIndustryData(industryChartData);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -87,10 +122,10 @@ export const useDashboard = () => {
     }
   };
 
-  // Setup realtime subscription
   useEffect(() => {
     fetchDashboardData();
 
+    // Subscribe to realtime changes on clients table
     const channel = supabase
       .channel('clients-changes')
       .on(
@@ -148,6 +183,7 @@ export const useDashboard = () => {
     clients,
     stats,
     statusData,
+    industryData,
     loading,
   };
 };

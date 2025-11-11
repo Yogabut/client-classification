@@ -3,11 +3,13 @@ import { ActivityLogItem } from './ActivityLogItem';
 import { ActivityLog } from './types';
 
 interface ActivityLogCardProps {
-  logs: ActivityLog[];
+  logs?: ActivityLog[]; 
   loading: boolean;
 }
 
 export const ActivityLogCard = ({ logs, loading }: ActivityLogCardProps) => {
+  const logList = logs || [];
+  
   return (
     <Card>
       <CardHeader>
@@ -16,11 +18,11 @@ export const ActivityLogCard = ({ logs, loading }: ActivityLogCardProps) => {
       <CardContent>
         {loading ? (
           <div className="text-center py-4 text-muted-foreground">Loading...</div>
-        ) : logs.length === 0 ? (
+        ) : logList.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">No activity yet</div>
         ) : (
-          <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {logs.map((log) => (
+          <div className="space-y-3 max-h-[520px] overflow-y-auto">
+            {logList.map((log) => (
               <ActivityLogItem key={log.id} log={log} />
             ))}
           </div>
