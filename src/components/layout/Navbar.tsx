@@ -34,11 +34,6 @@ export const Navbar = () => {
   return (
     <header className="h-16 border-b bg-card px-6 flex items-center justify-end sticky top-0 z-10">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 bg-accent rounded-full"></span>
-        </Button>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
