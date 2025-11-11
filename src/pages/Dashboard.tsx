@@ -16,25 +16,20 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header & Stats */}
         <DashboardHeader />
         <StatsGrid stats={stats} />
 
-        {/* Row 1: Status + Country */}
         <div className="grid gap-6 md:grid-cols-2">
           <ClientsStatusChart statusData={statusData} loading={loading} />
           <ClientsCountryCard />
         </div>
 
-        {/* Row 2: Industry + Activity Log */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* LEFT SIDE: Industry + Recent Table */}
           <div className="lg:col-span-2 space-y-6">
             <ClientsIndustryChart industryData={industryData} loading={loading} />
             <RecentClientsTable clients={clients} loading={loading} />
           </div>
 
-          {/* RIGHT SIDE: Activity Log */}
           <ActivityLogCard logs={activityLogs} loading={loading} />
         </div>
       </div>
