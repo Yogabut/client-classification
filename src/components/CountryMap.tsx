@@ -61,7 +61,7 @@ export const CountryMap = () => {
     // Initialize Leaflet map
     leafletMap.current = L.map(mapRef.current, {
       center: centerClient?.coordinates || [0, 0],
-      zoom: 4,
+      zoom: 3,
       zoomControl: true,
       scrollWheelZoom: false,
       worldCopyJump: true,
@@ -78,7 +78,7 @@ export const CountryMap = () => {
       const countryTotal = countryCount[client.country];
       
       const circle = L.circleMarker(client.coordinates, {
-        radius: 8,
+        radius: 9,
         color: 'hsl(var(--background))',
         weight: 3,
         fillColor: 'hsl(var(--primary))',

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ClientsSearchBar } from './ClientsSearchBar';
+import { ClientsFilter, FilterValues } from './ClientsFilter';
 import { ClientsTableRow } from './ClientsTableRow';
 import { Client } from './useClients';
 
@@ -7,7 +8,13 @@ interface ClientsTableProps {
   clients: Client[];
   loading: boolean;
   searchTerm: string;
+  filters: FilterValues;
+  countries: string[];
+  industries: string[];
+  users: { id: string; name: string }[];
   onSearchChange: (value: string) => void;
+  onFilterChange: (key: keyof FilterValues, value: string) => void;
+  onClearFilters: () => void;
   onNavigate: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -16,7 +23,13 @@ export const ClientsTable = ({
   clients,
   loading,
   searchTerm,
+  filters,
+  countries,
+  industries,
+  users,
   onSearchChange,
+  onFilterChange,
+  onClearFilters,
   onNavigate,
   onDelete,
 }: ClientsTableProps) => {
@@ -29,8 +42,16 @@ export const ClientsTable = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-4">
+        <div className="space-y-4">
           <ClientsSearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
+          <ClientsFilter
+            filters={filters}
+            onFilterChange={onFilterChange}
+            onClearFilters={onClearFilters}
+            countries={countries}
+            industries={industries}
+            users={users}
+          />
         </div>
       </CardHeader>
       <CardContent>

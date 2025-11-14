@@ -8,7 +8,22 @@ import { useClients } from '@/components/clients/useClients';
 export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-  const { clients, loading, fetchClients, handleDelete } = useClients();
+  const {
+    clients,
+    users,
+    loading,
+    filters,
+    countries,
+    industries,
+    fetchClients,
+    handleDelete,
+    handleFilterChange,
+    clearFilters,
+    getFilteredClients,
+  } = useClients();
+
+
+  const filteredClients = getFilteredClients(clients);
 
   return (
     <MainLayout>
@@ -16,10 +31,16 @@ export default function Clients() {
         <ClientsHeader onClientAdded={fetchClients} />
         
         <ClientsTable
-          clients={clients}
+          clients={filteredClients}
           loading={loading}
           searchTerm={searchTerm}
+          filters={filters}
+          countries={countries}
+          industries={industries}
+          users={users}
           onSearchChange={setSearchTerm}
+          onFilterChange={handleFilterChange}
+          onClearFilters={clearFilters}
           onNavigate={(id) => navigate(`/clients/${id}`)}
           onDelete={handleDelete}
         />
