@@ -44,7 +44,7 @@ export const CountryMap = () => {
       leafletMap.current.remove();
     }
 
-    // Group untuk count per negara
+    // counting clients per country
     const countryCount = clientData.reduce((acc, client) => {
       acc[client.country] = (acc[client.country] || 0) + 1;
       return acc;
