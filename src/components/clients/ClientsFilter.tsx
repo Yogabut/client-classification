@@ -109,11 +109,12 @@ export const ClientsFilter = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Revenue</SelectItem>
-              <SelectItem value="0-10000">$0 - $10K</SelectItem>
-              <SelectItem value="10000-50000">$10K - $50K</SelectItem>
-              <SelectItem value="50000-100000">$50K - $100K</SelectItem>
-              <SelectItem value="100000-500000">$100K - $500K</SelectItem>
-              <SelectItem value="500000+">$500K+</SelectItem>
+              <SelectItem value="0-500">$0 - $500</SelectItem>
+              <SelectItem value="500-999">$500 - $1K</SelectItem>
+              <SelectItem value="1000-4999">$1K - $5K</SelectItem>
+              <SelectItem value="5000-9999">$5K - $10K</SelectItem>
+              <SelectItem value="10000-49999">$10K - $50K</SelectItem>
+              <SelectItem value="50000+">$50K+</SelectItem>
             </SelectContent>
           </Select>
         </div>

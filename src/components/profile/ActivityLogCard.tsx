@@ -21,7 +21,7 @@ export const ActivityLogCard = ({ logs, loading }: ActivityLogCardProps) => {
         ) : logList.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">No activity yet</div>
         ) : (
-          <div className="space-y-3 max-h-[520px] overflow-y-auto">
+          <div className="space-y-3 max-h-[580px] overflow-y-auto">
             {logList.map((log) => (
               <ActivityLogItem key={log.id} log={log} />
             ))}

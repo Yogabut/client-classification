@@ -33,7 +33,7 @@ export const PersonalInfoCard = ({ user, onUpdateProfile }: PersonalInfoCardProp
   };
 
   return (
-    <Card className="md:col-span-2">
+    <Card className="md:col-span-3">
       <CardHeader>
         <CardTitle>Personal Information</CardTitle>
       </CardHeader>
